@@ -1,57 +1,34 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Button } from 'react-native';
-import { useEffect, useState } from 'react';
+import * as React from 'react';
+import { useState, ToastAndroid} from 'react';
+// import { NavigationContainer } from '@react-navigation/native';
+// import { createStackNavigator } from '@react-navigation/stack';
+import Home from './Components/Home';
+import ITApp from './Components/ITApp';
 import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/google-signin';
-
-export default function App() {
-  const [error, setError] = useState();
-  const [userInfo, setUserInfo] = useState();
-  useEffect(() => {
-    GoogleSignin.configure();
-  }, []);
-
-  const signin = async () => {
-    try {
-      await GoogleSignin.hasPlayServices();
-      const user = await GoogleSignin.signIn();
-      setUserInfo(user);
-      setError();
-    } catch (e) {
-      console.log('Error during sign-in:', e); // Add this line
-      setError(e);
-    }
-  };
-
+function App() {
+  const [userInfo, setUserInfo] = useState(null);
+  // const [logoutFunction, setLogoutFunction] = useState(null);
   const logout = () => {
+    
+    // ToastAndroid.show(5, ToastAndroid.SHORT);
+    // // ToastAndroid.show(userInfo, ToastAndroid.SHORT);
     setUserInfo();
     GoogleSignin.revokeAccess();
     GoogleSignin.signOut();
   };
-
   return (
-    <View style={styles.container}>
-      {error && <Text>{"could not log in"}</Text>}
-      {error && <Text>{JSON.stringify(error)}</Text>}
-      {userInfo && <Text>{JSON.stringify(userInfo)}</Text>}
-      {userInfo ? (
-        <Button title="Logout" onPress={logout} />
-      ) : (
-        <GoogleSigninButton
-          size={GoogleSigninButton.Size.Standard}
-          color={GoogleSigninButton.Color.Dark}
-          onPress={signin}
-        />
-      )}
-      <StatusBar style="auto" />
-    </View>
+    !userInfo ? (
+      <Home userInfo={userInfo} setUserInfo={setUserInfo} logoutFunction={logout} 
+       />
+    ) : (
+      
+      <ITApp logoutFunction={logout} />
+    )
   );
+  
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+// (
+//   <Button title="Logout" onPress={logout} />
+// ) : 
+export default App;
