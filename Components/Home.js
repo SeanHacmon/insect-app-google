@@ -1,16 +1,22 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet,Image, Text, View, Button, ToastAndroid } from 'react-native';
+import {ImageBackground, StyleSheet,Image, Text, View, Button, ToastAndroid } from 'react-native';
 import { useEffect, useState } from 'react';
 import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/google-signin';
-// import Navigation from '../navigation/navigation';
-// import { useNavigation } from '@react-navigation/native';
-export default function Home({userInfo, setUserInfo, setLogoutFunction}) {
+
+export default function Home({userInfo, setUserInfo, setLogoutFunction, setToken}) {
+
   const [error, setError] = useState();
+
   useEffect(() => {
-    GoogleSignin.configure();
+    GoogleSignin.configure({
+      // webClientId: '42809521003-s09gbsitjmh2qpml8q7p90dn18l5ej5j.apps.googleusercontent.com',
+      webClientId: '42809521003-pc6ip7bgndnpg1uf7e5k68r7g7fjqbg3.apps.googleusercontent.com',
+      // androidClientId: '42809521003-h1v0fk55h3dit7qpma8999hcks0vpiip.apps.googleusercontent.com',
+      scopes: ['https://www.googleapis.com/auth/drive'],
+       offlineAccess: true,
+  })
   }, []);
-  
-//   const navigation = useNavigation();
+
 
 
   const signin = async () => {
@@ -20,6 +26,9 @@ export default function Home({userInfo, setUserInfo, setLogoutFunction}) {
       await GoogleSignin.hasPlayServices();
       const user = await GoogleSignin.signIn();
       setUserInfo(user);
+      const token = (await GoogleSignin.getTokens()).accessToken;
+      createFolder(userInfo.user.email, token);
+      setToken(token);
       setError();
     } catch (e) {
       console.log('Error during sign-in:', e); // Add this line
@@ -28,16 +37,9 @@ export default function Home({userInfo, setUserInfo, setLogoutFunction}) {
 
   };
 
-  // const logout = () => {
-  //   // ToastAndroid.show("hello", ToastAndroid.SHORT);
-  //   // ToastAndroid.show(userInfo, ToastAndroid.SHORT);
-  //   setUserInfo();
-  //   GoogleSignin.revokeAccess();
-  //   GoogleSignin.signOut();
-  // };
 
   return (
-    <View style={styles.container}>
+    <ImageBackground source={require('/Users/seanhakmon/Projects/insect-tracker/insect-app/assets/HomeInsectBackground.jpeg')} style={styles.container}>
       {error && <Text>{"could not log in"}</Text>}
       {error && <Text>{JSON.stringify(error)}</Text>}
       <Text style={styles.title}>Insect Tracker App</Text>
@@ -53,7 +55,7 @@ export default function Home({userInfo, setUserInfo, setLogoutFunction}) {
         />
       )}
       <StatusBar style="auto" />
-    </View>
+    </ImageBackground>
   );
 }
 
@@ -74,24 +76,9 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: 'bold',
     color: 'white',
-    fontFamily: 'Montserrat'
+    fontFamily: 'Montserrat',
+    marginBottom: 108,
   },
-  // customGoogleButton: {
-  //   flexDirection: 'row',
-  //   alignItems: 'center',
-  //   backgroundColor: '#FFFFFF', // White background color for the button
-  //   paddingHorizontal: 25,
-  //   paddingVertical: 8,
-  //   borderRadius: 20, // High border radius for a pill shape
-  //   shadowColor: "#000",
-  //   shadowOffset: {
-  //     width: 0,
-  //     height: 2,
-  //   },
-  //   shadowOpacity: 0.25,
-  //   shadowRadius: 3.84,
-  //   elevation: 5,
-  // },
   buttonText: {
     marginLeft: 10,
     color: '#DB4437', // Google red color for the text

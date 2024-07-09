@@ -12,7 +12,7 @@ export default {
       "backgroundColor": "#ffffff"
     },
     "plugins": [
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
     ],
     "ios": {
       "supportsTablet": true

@@ -1,34 +1,53 @@
 import * as React from 'react';
 import { useState, ToastAndroid} from 'react';
-// import { NavigationContainer } from '@react-navigation/native';
-// import { createStackNavigator } from '@react-navigation/stack';
+import Configure from './Components/Configure';
 import Home from './Components/Home';
 import ITApp from './Components/ITApp';
+import GoogleDriveManager from './Components/GoogleDriveManager';
 import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/google-signin';
+
 function App() {
+
   const [userInfo, setUserInfo] = useState(null);
-  // const [logoutFunction, setLogoutFunction] = useState(null);
+  const [intervalTime, setIntervalTime] = useState(5);
+  const [experimentName, setExperimentName] = useState('');
+  const [configure, setConfigure] = useState(false);
+  const [token, setToken] = useState(null);
+  
   const logout = () => {
-    
     // ToastAndroid.show(5, ToastAndroid.SHORT);
     // // ToastAndroid.show(userInfo, ToastAndroid.SHORT);
     setUserInfo();
     GoogleSignin.revokeAccess();
     GoogleSignin.signOut();
   };
+  const setSettings = () =>{
+    setConfigure(!configure);
+  }
   return (
     !userInfo ? (
-      <Home userInfo={userInfo} setUserInfo={setUserInfo} logoutFunction={logout} 
-       />
+      <Home userInfo={userInfo}
+       setUserInfo={setUserInfo}
+       logoutFunction={logout} 
+       setToken={setToken}/>
     ) : (
-      
-      <ITApp logoutFunction={logout} />
+      !configure ? (<Configure
+         setIntervalTime={setIntervalTime}
+         setExperimentName={setExperimentName}
+         setConfigure={setConfigure} />
+      ) 
+      : ( <ITApp 
+        logoutFunction={logout}
+        setConfigure={setConfigure}
+        setSettings={setSettings} 
+        intervalTime={intervalTime}
+        experimentName={experimentName}
+        userInfo={userInfo}
+        token={token}/>
+      )
     )
   );
   
 }
 
-// (
-//   <Button title="Logout" onPress={logout} />
-// ) : 
 export default App;

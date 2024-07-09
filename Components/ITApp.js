@@ -3,19 +3,23 @@ import { StyleSheet, ToastAndroid, View, Text, Image, TextInput, TouchableOpacit
 import { CameraView, useCameraPermissions} from 'expo-camera';
 import * as MediaLibrary from 'expo-media-library';
 import Button from './Button'
-// import Authentication from './components/Authentication';
-export default function ITApp({logoutFunction}) {
+import { GoogleSignin, GoogleAuth } from "@react-native-google-signin/google-signin";
+import {
+  GDrive,
+  MimeTypes
+} from "@robinbobin/react-native-google-drive-api-wrapper";
+import axios from 'axios';
+
+
+
+export default function ITApp({logoutFunction, setConfigure, setSettings, intervalTime, experimentName, userInfo}) {
   const [hasCameraPermission, setHasCameraPermission] = useState(null);
   const [hasMicrophonePermission, setMicrophonePermission] = useState(null);
 
   const [facing, setFacing] = useState('back');
   const [inputAllow, setinputAllow] = useState(true);
-  const [intervalTime, setIntervalTime] = useState(5);
-  const [experimentName, setExperimentName] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [image, setImage] = useState(null);
-  const [showTextInput, setShowTextInput] = useState(false);
-  const [showIntervalInput, setShowIntervalInput] = useState(false);
   const [recordingFinished, setRecordingFinished] = useState(false); // New state
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
@@ -28,33 +32,43 @@ export default function ITApp({logoutFunction}) {
       setHasCameraPermission(mediaLibraryStatus.status === 'granted');
     })();
   }, []);
-  
-  useEffect(() => {
-    if (image && !isRecording) {
-      setExperimentName('');
-      setShowTextInput(true);
-    }
-  }, [image, inputAllow, isRecording]);
-  
-  
-  const saveInterval = (time) => {
-    setIntervalTime(time);
-    console.log('Interval Time:', time);
-    setShowIntervalInput(false);
-  };
 
-  const saveExperimentName = (name) => {
-    setExperimentName(name);
-    console.log('Experiment Name:', name);
-    setShowTextInput(false);
-  };
-// check
+  const createFolder = async (folderName) => {
+    try {
+        const accessToken = (await GoogleSignin.getTokens()).accessToken;  // Make sure you have valid token
+        // ToastAndroid.show(GoogleSignin.getTokens().accessToken, ToastAndroid.SHORT);
+        
+        axios.post('https://www.googleapis.com/drive/v3/files', {
+          name: folderName,
+          mimeType: 'application/vnd.google-apps.folder'
+        }, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => {
+          console.log('Folder created with ID:', response.data.id);
+        })
+        .catch(error => {
+          console.error('Failed to create folder:', error.response.data);
+        });
+      
+        // console.log('Folder created with ID:', response.data.id);
+        // return response.data;
+    } catch (error) {
+        console.error('Failed to create folder:', error);
+        throw error;
+    }
+};
+
+//GoogleSignin.getTokens()
   const takePicture = async () => {
     if (cameraRef) {
       try {
         console.log("taking a photo..");
         const data = await cameraRef.current.takePictureAsync();
-        // ToastAndroid.show(data.uri, ToastAndroid.SHORT);
+        ToastAndroid.show(data.uri, ToastAndroid.SHORT);
         console.log(data);
         setImage(data.uri);
         // if (isRecording) {
@@ -94,11 +108,8 @@ export default function ITApp({logoutFunction}) {
 
 
   const saveImage = async () => {
+    createFolder("folder1");
     try {
-      // if (image) {
-      //   await MediaLibrary.createAssetAsync(image);
-      //   setImage(null);
-      // }
       if (images.length > 0) {
         for (const img of images) {
           await MediaLibrary.createAssetAsync(img);
@@ -114,6 +125,16 @@ export default function ITApp({logoutFunction}) {
   return (
     <View style={styles.container}>
       <View style={{ flex: 1 }}>
+        <TouchableOpacity onPress={() => setSettings()} style={styles.experimentTitle}>
+          <Image source={require('/Users/seanhakmon/Projects/insect-tracker/insect-app/assets/LOGO.png')} style={styles.logoSettings} text={experimentName}/>
+          <View style={styles.titleContainer}>
+            <Text style={styles.experimentTitle}>{experimentName}</Text>
+          </View>
+          {/* <View>
+            <GoogleDriveManager userInfo={userInfo}/>
+          </View> */}
+      </TouchableOpacity>
+      {/* <Image source={require('/Users/seanhakmon/Projects/insect-tracker/insect-app/assets/LOGO.png')} /> */}
         <CameraView style={styles.camera} facing={facing} ref={cameraRef} zoom={0} />
       </View>
       <View style={styles.buttonContainer}>
@@ -129,39 +150,14 @@ export default function ITApp({logoutFunction}) {
         ) : (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
             <Button icon="camera" onPress={takePicture} />
-            <Button icon="clock" onPress={() => setShowIntervalInput(!showIntervalInput)} />
             <Button icon={'controller-record'} color={isRecording ? 'red' : null} onPress={recordVideo} />
             <Button icon={'cycle'} onPress={toggleCameraFacing}/>
-            <Button icon={'log-out'} onPress={logoutFunction} />
-            {/* <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-              <Text style={styles.text}>Flip Camera</Text>
-            </TouchableOpacity> */}
+            <Button icon={'log-out'} onPress={()=>{
+              logoutFunction(); 
+              setConfigure(false);}} />
           </View>
         )}
       </View>
-      {showTextInput && (
-        <View>
-          <Text style={styles.title}>Please enter experiment name</Text>
-          <TextInput
-          style={styles.input}
-          value={experimentName}
-          onChangeText={(input) => setExperimentName(input)}
-          onSubmitEditing={() => saveExperimentName(experimentName)}
-        />
-        </View>
-      )}
-      {showIntervalInput &&  (
-        <View>
-          <Text style={styles.title}>Please enter interval time:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter Interval Number"
-            keyboardType="numeric"
-            onChangeText={(input) => setIntervalTime(input)}
-            onSubmitEditing={() => saveInterval(intervalTime)}
-          />
-        </View>
-      )}
     </View>
   );
 }
@@ -172,6 +168,24 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     marginBottom: 10,
+  },
+  experimentTitle: {
+    flexDirection: 'row',
+    fontSize: 24,
+    color: 'white',
+    fontWeight: 'bold',
+    marginTop: 2,
+    backgroundColor: 'black',
+    // textAlign: 'center',
+  },
+  titleContainer: {
+    flex: 1, 
+    alignItems: 'center', 
+    // left: 135
+  },
+  logoSettings: {
+    height: 45,
+    width: 45,
   },
   container: {
     flex: 1,
