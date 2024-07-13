@@ -12,7 +12,9 @@ export default function Home({userInfo, setUserInfo, setLogoutFunction, setToken
       // webClientId: '42809521003-s09gbsitjmh2qpml8q7p90dn18l5ej5j.apps.googleusercontent.com',
       webClientId: '42809521003-pc6ip7bgndnpg1uf7e5k68r7g7fjqbg3.apps.googleusercontent.com',
       // androidClientId: '42809521003-h1v0fk55h3dit7qpma8999hcks0vpiip.apps.googleusercontent.com',
-      scopes: ['https://www.googleapis.com/auth/drive'],
+      scopes: [
+       'https://www.googleapis.com/auth/drive.file'
+    ],
        offlineAccess: true,
   })
   }, []);
