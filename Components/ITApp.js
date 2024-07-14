@@ -70,7 +70,7 @@ export default function ITApp({logoutFunction, setConfigure, setSettings, interv
       try {
         console.log("taking a photo..");
         const data = await cameraRef.current.takePictureAsync();
-        ToastAndroid.show(data.uri, ToastAndroid.SHORT);
+        // ToastAndroid.show(data.uri, ToastAndroid.SHORT);
         console.log(data);
         setImage(data);
         // if (isRecording) {
@@ -111,58 +111,44 @@ export default function ITApp({logoutFunction, setConfigure, setSettings, interv
 
 
   const saveImage = async () => {
-    if (!folderId) {
-      ToastAndroid.show('folder id is null', ToastAndroid.SHORT);
-    }
-    const accessToken = (await GoogleSignin.getTokens()).accessToken;
-    if (!accessToken) {
-      ToastAndroid.show('accesstoken is null', ToastAndroid.SHORT);
-    }
+     const accessToken = (await GoogleSignin.getTokens()).accessToken;
     try {
-      if (image) {
-        ToastAndroid.show(folderId, ToastAndroid.SHORT);
-        // for (const img of images) {
-          const response = await fetch(image.uri);
-          const blob = await response.blob();
-          const formData = new FormData();
-          formData.append('metadata', new Blob([JSON.stringify({
-            name: 'uploaded_image.jpg',  // Customize the file name as needed
-            parents: [folderId],  // Folder ID where the file will be saved
-            mimeType: 'image/jpeg',
-            uri: image.uri
-          })], { type: 'application/json' }));
-          formData.append('file', blob);
-          const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart' ,{
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'multipart/related'
-          },
-          body: formData
-          
-        }).then(response => {
-          ToastAndroid.show('Success', ToastAndroid.SHORT);
-          })
-          if (uploadResponse.ok) {
-            const uploadData = await uploadResponse.json();
-            console.log('Upload successful:', uploadData);
-            ToastAndroid.show('Upload successful', ToastAndroid.SHORT);
-          } else {
-            const errorText = await uploadResponse.text();
-            console.error('Upload failed:', errorText);
-            ToastAndroid.show('Upload failed', ToastAndroid.SHORT);
-          }
-        // }
-        await MediaLibrary.createAssetAsync(image);
-        setImage(null);
-        setImages([]);
+      // Step 1: Create a Blob from a simple text string
+      const fileContent = "Hello, this is a demo file."; // Content of the file
+      const blob = new Blob([fileContent], { type: 'text/plain' });
+  
+      // Step 2: Create FormData to send in the fetch request
+      const formData = new FormData();
+      formData.append('file', blob, 'demo.txt');
+      formData.append('metadata', new Blob([JSON.stringify({
+        name: 'demo.txt',
+        mimeType: 'text/plain'
+      })], { type: 'application/json' }));
+  
+      // Step 3: Make the fetch request to upload the file to Google Drive
+      const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'multipart/related', // This header is necessary for multipart uploads
+        },
+        body: formData
+      });
+  
+      // Step 4: Process the response
+      if (response.ok) {
+        const data = await response.json();
+        console.log('File uploaded successfully:', data);
+        return data;
+      } else {
+        const errorText = await response.text();
+        throw new Error('Failed to upload file: ' + errorText);
       }
-    }
-     catch (e) {
-      console.log(e);
+    } catch (error) {
+      console.error('Error uploading file to Google Drive:', error);
+      throw error;
     }
   };
-  
 
 
  
@@ -437,6 +423,61 @@ const styles = StyleSheet.create({
   //           'Content-Type': 'multipart/related',
   //         },
           
+  //       }).then(response => {
+  //         ToastAndroid.show('Success', ToastAndroid.SHORT);
+  //         })
+  //         if (uploadResponse.ok) {
+  //           const uploadData = await uploadResponse.json();
+  //           console.log('Upload successful:', uploadData);
+  //           ToastAndroid.show('Upload successful', ToastAndroid.SHORT);
+  //         } else {
+  //           const errorText = await uploadResponse.text();
+  //           console.error('Upload failed:', errorText);
+  //           ToastAndroid.show('Upload failed', ToastAndroid.SHORT);
+  //         }
+  //       // }
+  //       await MediaLibrary.createAssetAsync(image);
+  //       setImage(null);
+  //       setImages([]);
+  //     }
+  //   }
+  //    catch (e) {
+  //     console.log(e);
+  //   }
+  // };
+
+
+  // best version 
+
+  // const saveImage = async () => {
+  //   if (!folderId) {
+  //     ToastAndroid.show('folder id is null', ToastAndroid.SHORT);
+  //   }
+  //   const accessToken = (await GoogleSignin.getTokens()).accessToken;
+  //   if (!accessToken) {
+  //     ToastAndroid.show('accesstoken is null', ToastAndroid.SHORT);
+  //   }
+  //   try {
+  //     if (image) {
+  //       ToastAndroid.show(image.uri, ToastAndroid.SHORT);
+  //       // for (const img of images) {
+  //         const response = await fetch(image.uri);
+  //         const blob = await response.blob();
+  //         const formData = new FormData();
+  //         formData.append('metadata', new Blob(JSON.stringify({
+  //           name: 'uploaded_image.jpg',  
+  //           // parents: [folderId],  
+  //           mimeType: 'image/jpeg',
+  //           uri: image.uri
+  //         }), { type: 'application/json' }));
+  //         formData.append('file', blob);
+  //         const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart' ,{
+  //         method: 'POST',
+  //         headers: {
+  //           'Authorization': `Bearer ${accessToken}`,
+  //           'Content-Type': 'multipart/related'
+  //         },
+  //         body: formData
   //       }).then(response => {
   //         ToastAndroid.show('Success', ToastAndroid.SHORT);
   //         })
