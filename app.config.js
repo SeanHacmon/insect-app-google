@@ -13,6 +13,18 @@ export default {
     },
     "plugins": [
       "@react-native-google-signin/google-signin",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "$(PRODUCT_NAME) needs access to your Camera.",
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true
@@ -23,7 +35,7 @@ export default {
         "backgroundColor": "#ffffff"
       },
       "package": "com.hacmons.insectapp",
-      "googleServicesFile": process.env.GOOGLE_SERVICES_JSON
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"

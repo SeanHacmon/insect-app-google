@@ -29,7 +29,7 @@ export default function Home({userInfo, setUserInfo, setLogoutFunction, setToken
       const user = await GoogleSignin.signIn();
       setUserInfo(user);
       const token = (await GoogleSignin.getTokens()).accessToken;
-      createFolder(userInfo.user.email, token);
+      // createFolder(userInfo.user.email, token);
       setToken(token);
       setError();
     } catch (e) {
@@ -41,11 +41,11 @@ export default function Home({userInfo, setUserInfo, setLogoutFunction, setToken
 
 
   return (
-    <ImageBackground source={require('/Users/seanhakmon/Projects/insect-tracker/insect-app/assets/HomeInsectBackground.jpeg')} style={styles.container}>
+    <ImageBackground source={require('../assets/HomeInsectBackground.jpeg')} style={styles.container}>
       {error && <Text>{"could not log in"}</Text>}
       {error && <Text>{JSON.stringify(error)}</Text>}
       <Text style={styles.title}>Insect Tracker App</Text>
-      <Image source={require('/Users/seanhakmon/Projects/insect-tracker/insect-app/assets/LOGO.png')} style={styles.logo} />
+      <Image source={require('../assets/LOGO.png')} style={styles.logo} />
       {userInfo ? (
         setLogoutFunction= {logout} 
       ) : (

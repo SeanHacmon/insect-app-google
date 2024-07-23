@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, ToastAndroid, View, Text, Image, TextInput, TouchableOpacity, Dimensions } from 'react-native';
-import { CameraView, CameraCapturedPicture, useCameraPermissions} from 'expo-camera';
+import { StyleSheet, ToastAndroid, View, Text, Image, TextInput, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import Button from './Button'
 import {
@@ -11,6 +10,7 @@ import {
 import RNFetchBlob from 'react-native-blob-util';
 import { imageCropper } from './ImageCropper';
 import { driveImageUploader } from './DriveUploader';
+import { Camera, PhotoFile, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 
 export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings, intervalTime, experimentName, userInfo}) {
 
@@ -20,13 +20,16 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
   const [facing, setFacing] = useState('back');
   const [inputAllow, setinputAllow] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
-  const [image, setImage] = useState<CameraCapturedPicture>(null);
+  const [image, setImage] = useState<PhotoFile>(null);
   const [recordingFinished, setRecordingFinished] = useState(false); // New state
-  const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef<CameraView>(null);
+  // const [permission, requestPermission] = useCameraPermissions();
+  const { requestPermission } = useCameraPermission()
+  const cameraRef = useRef<Camera>(null);
   const intervalIdRef = useRef(null);
-  const [images, setImages] = useState<CameraCapturedPicture[]>([]);
+  const [images, setImages] = useState<PhotoFile[]>([]);
 
+  const device = useCameraDevice('back')
+  
   let drive: GDrive = gdrive;
   
   useEffect(() => { 
@@ -34,6 +37,9 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
     createFolder(experimentName);
 
     (async () => {
+
+      await requestPermission();
+
       const mediaLibraryStatus = await MediaLibrary.requestPermissionsAsync();
       setHasCameraPermission(mediaLibraryStatus.status === 'granted');
     })();
@@ -82,7 +88,10 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
     if (cameraRef) {
       try {
         console.log("taking a photo..");
-        const data = await cameraRef.current.takePictureAsync();
+        let data = await cameraRef.current.takePhoto()
+
+        data.path = 'file://' + data.path
+
         // console.log(data);
         setImage(data);
         // if (isRecording) {
@@ -99,7 +108,7 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
       console.error('Camera reference is null');
     }
   };
-  
+
   const toggleCameraFacing = async() => {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   }
@@ -122,12 +131,12 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
 
   const saveImage = async () => {
     for (const img of images) {
-      let file = await RNFetchBlob.fs.stat(img.uri)
+      let file = await RNFetchBlob.fs.stat(img.path)
       let size = file.size / 1024 / 1024; // covert to MB
 
-      let filename = img.uri.substring(img.uri.lastIndexOf('/') + 1);
+      let filename = img.path.substring(img.path.lastIndexOf('/') + 1);
 
-      let extension = img.uri.substring(img.uri.lastIndexOf('.') + 1);
+      let extension = img.path.substring(img.path.lastIndexOf('.') + 1);
 
       if (size > 5 && size < 7) {
 
@@ -135,7 +144,7 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
         console.log('cropping ...')
         
         let resizedImage = await imageCropper({
-          uri: img.uri,
+          uri: img.path,
           width: img.width,
           height: img.height,
         })
@@ -161,7 +170,7 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
 
       } else if (size <= 5) {
 
-        let imageBase64 = await RNFetchBlob.fs.readFile(img.uri, 'base64');
+        let imageBase64 = await RNFetchBlob.fs.readFile(img.path, 'base64');
 
         let status = await driveImageUploader({
           drive,
@@ -187,13 +196,13 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
     try {
     Promise.all(images.map(async (image,i) => {
 
-      let file = await RNFetchBlob.fs.stat(image.uri);
+      let file = await RNFetchBlob.fs.stat(image.path);
 
       let size = file.size / 1024 / 1024; // covert to MB
 
-      let filename = image.uri.substring(image.uri.lastIndexOf('/') + 1);
+      let filename = image.path.substring(image.path.lastIndexOf('/') + 1);
 
-      let extension = image.uri.substring(image.uri.lastIndexOf('.') + 1);
+      let extension = image.path.substring(image.path.lastIndexOf('.') + 1);
 
       if (size > 5 && size < 7) {
 
@@ -201,7 +210,7 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
         console.log('cropping ...')
         
         let resizedImage = await imageCropper({
-          uri: image.uri,
+          uri: image.path,
           width: image.width,
           height: image.height,
         })
@@ -224,10 +233,11 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
         console.log('File uploaded successfully: ', { status });
   
         setImages([]);
+        setImage(null);
   
       } else if (size <= 5) {
   
-        let imageBase64 = await RNFetchBlob.fs.readFile(image.uri, 'base64');
+        let imageBase64 = await RNFetchBlob.fs.readFile(image.path, 'base64');
   
         let status = await driveImageUploader({
           drive,
@@ -246,12 +256,20 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
         return;
       }
 
-    }))
+    }))  
   } catch (err) {
     console.log('error uploading multiple uploaded', err.message);
   }
   }
 
+  if (device == null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    )
+  }
+  
   return (
     <View style={styles.container}>
       <View style={{ flex: 1 }}>
@@ -260,12 +278,14 @@ export default function ITApp({logoutFunction,gdrive, setConfigure, setSettings,
           <View style={styles.titleContainer}>
             <Text style={styles.experimentTitle}>{experimentName}</Text>
           </View>
-          {/* <View>
-            <GoogleDriveManager userInfo={userInfo}/>
-          </View> */}
       </TouchableOpacity>
-      {/* <Image source={require('/Users/seanhakmon/Projects/insect-tracker/insect-app/assets/LOGO.png')} /> */}
-      <CameraView style={styles.camera} facing={facing} ref={cameraRef} zoom={0} />
+       <Camera
+        ref={cameraRef}
+        style={styles.camera}
+        device={device}
+        isActive
+        photo
+      />
       </View>
       <View style={styles.buttonContainer}>
         {(image && !isRecording) ? (
@@ -352,3 +372,250 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+// const saveImage = async () => {
+//   if (!folderId) {
+//     console.error("Folder ID is not set.");
+//     return;
+//   }
+//   const accessToken = (await GoogleSignin.getTokens()).accessToken;
+//   try {
+//     if (images.length > 0) {
+//       ToastAndroid.show(folderId, ToastAndroid.SHORT);
+//       for (const img of images) {
+//         const response = await fetch(img);
+//         const blob = await response.blob();
+//         const formData = new FormData();
+//         formData.append('file', blob, { type: 'image/jpeg' });
+//         formData.append('metadata', new Blob([JSON.stringify({
+//           name: 'uploaded_image.jpg',  // Customize the file name as needed
+//           parents: [folderId],  // Folder ID where the file will be saved
+//           mimeType: 'image/jpeg',
+//         })], { type: 'application/json' }));
+        
+//         await MediaLibrary.createAssetAsync(img);
+//         setImage(null);
+//         const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+//         method: 'POST',
+//         headers: {
+//           'Authorization': `Bearer ${accessToken}`,
+//           'Content-Type': 'multipart/related',
+//         },
+//         body: formData,
+//       });
+//       const uploadData = await uploadResponse.json();
+//       console.log('Upload successful:', uploadData);
+//       }
+      
+//       setImages([]);
+//     }
+//   } catch (e) {
+//     console.log(e);
+//   }
+// };
+
+
+// version2 
+// const saveImage = async () => {
+//   if (!folderId) {
+//     console.error("Folder ID is not set.");
+//     return;
+//   }
+//   const accessToken = (await GoogleSignin.getTokens()).accessToken;
+//   if (!accessToken) {
+//     ToastAndroid.show("bad access token", ToastAndroid.SHORT);
+//     return;
+//   }
+//     if (images.length > 0) {
+//       ToastAndroid.show(folderId, ToastAndroid.SHORT);
+//       for (const img of images) {
+//         try {
+//         const response = await fetch(img);
+//         const blob = await response.blob();
+//         const formData = new FormData();
+//         formData.append('metadata', new Blob([JSON.stringify({
+//           name: 'uploaded_image.jpg',  // Customize the file name as needed
+//           parents: [folderId],  // Folder ID where the file will be saved
+//           mimeType: 'image/jpeg',
+//         })]));
+//         formData.append('file', blob, { type: 'image/jpeg' });
+//         await MediaLibrary.createAssetAsync(img);
+//         setImage(null);
+        
+//         const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+//         method: 'POST',
+//         headers: {
+//           'Authorization': `Bearer ${accessToken}`,
+//           'Content-Type': 'multipart/related',
+//         },
+//         body: formData,
+//       })
+
+//       if (uploadResponse.ok) {
+//         ToastAndroid.show('Upload successful', ToastAndroid.SHORT);
+//         const uploadData = await uploadResponse.json();
+//         console.log('Upload successful:', uploadData);
+//       } else {
+//         console.error('Upload failed:', await uploadResponse.text());
+//         ToastAndroid.show('Upload failed', ToastAndroid.SHORT);
+//       }
+//     }
+//     catch (e) {
+//      console.log(e);
+//    }
+//       }
+      
+//       setImages([]);
+//     }
+// };
+
+// version 3
+// const saveImage = async () => {
+  //   if (!folderId) {
+  //     console.error("Folder ID is not set.");
+  //     return;
+  //   }
+  
+  //   const accessToken = (await GoogleSignin.getTokens()).accessToken;
+  //   if (!accessToken) {
+  //     console.error("Access token is not available.");
+  //     return;
+  //   }
+  
+  //   // Create an empty Blob for a .txt file
+  //   const blob = new Blob([''], { type: 'text/plain' });
+  //   let formData = new FormData();
+  //   formData.append('metadata', new Blob([JSON.stringify({
+  //     name: 'empty_file.txt',
+  //     parents: [folderId],
+  //     mimeType: 'text/plain',
+  //   })], { type: 'application/json' }));
+  //   formData.append('file', blob, 'empty_file.txt');
+    
+  //   try {
+  //     const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': `Bearer ${accessToken}`,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: formData,
+  //     });
+  
+  //     if (uploadResponse.ok) {
+  //       const uploadData = await uploadResponse.json();
+  //       console.log('Upload successful:', uploadData);
+  //     } else {
+  //       console.error('Upload failed:', await uploadResponse.text());
+  //     }
+  //   } catch (error) {
+  //     console.error('Error during the upload:', error);
+  //   }
+  // };
+
+  // version 4 
+  // const saveImage = async () => {
+  //   if (!folderId) {
+  //     ToastAndroid.show('folder id is null', ToastAndroid.SHORT);
+  //   }
+  //   const accessToken = (await GoogleSignin.getTokens()).accessToken;
+  //   if (!accessToken) {
+  //     ToastAndroid.show('accesstoken is null', ToastAndroid.SHORT);
+  //   }
+  //   try {
+  //     if (image) {
+  //       ToastAndroid.show(folderId, ToastAndroid.SHORT);
+  //       // for (const img of images) {
+  //         const response = await fetch(image);
+  //         const blob = await response.blob();
+  //         const formData = new FormData();
+  //         formData.append('metadata', new Blob([JSON.stringify({
+  //           name: 'uploaded_image.jpg',  // Customize the file name as needed
+  //           parents: [folderId],  // Folder ID where the file will be saved
+  //           mimeType: 'image/jpeg',
+  //           uri: image.uri
+  //         })], { type: 'application/json' }));
+  //         formData.append('file', blob);
+  //         const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', formData ,{
+  //         method: 'POST',
+  //         headers: {
+  //           'Authorization': `Bearer ${accessToken}`,
+  //           'Content-Type': 'multipart/related',
+  //         },
+          
+  //       }).then(response => {
+  //         ToastAndroid.show('Success', ToastAndroid.SHORT);
+  //         })
+  //         if (uploadResponse.ok) {
+  //           const uploadData = await uploadResponse.json();
+  //           console.log('Upload successful:', uploadData);
+  //           ToastAndroid.show('Upload successful', ToastAndroid.SHORT);
+  //         } else {
+  //           const errorText = await uploadResponse.text();
+  //           console.error('Upload failed:', errorText);
+  //           ToastAndroid.show('Upload failed', ToastAndroid.SHORT);
+  //         }
+  //       // }
+  //       await MediaLibrary.createAssetAsync(image);
+  //       setImage(null);
+  //       setImages([]);
+  //     }
+  //   }
+  //    catch (e) {
+  //     console.log(e);
+  //   }
+  // };
+
+
+  // best version 
+
+  // const saveImage = async () => {
+  //   if (!folderId) {
+  //     ToastAndroid.show('folder id is null', ToastAndroid.SHORT);
+  //   }
+  //   const accessToken = (await GoogleSignin.getTokens()).accessToken;
+  //   if (!accessToken) {
+  //     ToastAndroid.show('accesstoken is null', ToastAndroid.SHORT);
+  //   }
+  //   try {
+  //     if (image) {
+  //       ToastAndroid.show(image.uri, ToastAndroid.SHORT);
+  //       // for (const img of images) {
+  //         const response = await fetch(image.uri);
+  //         const blob = await response.blob();
+  //         const formData = new FormData();
+  //         formData.append('metadata', new Blob(JSON.stringify({
+  //           name: 'uploaded_image.jpg',  
+  //           // parents: [folderId],  
+  //           mimeType: 'image/jpeg',
+  //           uri: image.uri
+  //         }), { type: 'application/json' }));
+  //         formData.append('file', blob);
+  //         const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart' ,{
+  //         method: 'POST',
+  //         headers: {
+  //           'Authorization': `Bearer ${accessToken}`,
+  //           'Content-Type': 'multipart/related'
+  //         },
+  //         body: formData
+  //       }).then(response => {
+  //         ToastAndroid.show('Success', ToastAndroid.SHORT);
+  //         })
+  //         if (uploadResponse.ok) {
+  //           const uploadData = await uploadResponse.json();
+  //           console.log('Upload successful:', uploadData);
+  //           ToastAndroid.show('Upload successful', ToastAndroid.SHORT);
+  //         } else {
+  //           const errorText = await uploadResponse.text();
+  //           console.error('Upload failed:', errorText);
+  //           ToastAndroid.show('Upload failed', ToastAndroid.SHORT);
+  //         }
+  //       // }
+  //       await MediaLibrary.createAssetAsync(image);
+  //       setImage(null);
+  //       setImages([]);
+  //     }
+  //   }
+  //    catch (e) {
+  //     console.log(e);
+  //   }
+  // };

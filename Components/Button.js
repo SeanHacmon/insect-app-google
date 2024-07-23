@@ -8,7 +8,7 @@ export default function Button({ title, styles ,onPress, icon, color, image }) {
             {icon ? (
                 <Entypo name={icon} size={28} color={color ? color : '#f1f1f1'} />
             ) : (
-                image && <Image source={require('/Users/seanhakmon/Projects/insect-tracker/insect-app/assets/LOGO.png')} />
+                image && <Image source={require('../assets/LOGO.png')} />
             )}
             <Text style={styles}>{title}</Text>
         </TouchableOpacity>

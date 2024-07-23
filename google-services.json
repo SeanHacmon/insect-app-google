@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "42809521003",
+    "project_id": "insect-app-7ceb8",
+    "storage_bucket": "insect-app-7ceb8.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:42809521003:android:5ff69903a892390a55522e",
+        "android_client_info": {
+          "package_name": "com.hacmons.insectapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "42809521003-pc6ip7bgndnpg1uf7e5k68r7g7fjqbg3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAVfCseTRIngqJv2WJqCwCweTpCJxk4c1k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "42809521003-pc6ip7bgndnpg1uf7e5k68r7g7fjqbg3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -5,7 +5,7 @@ function Configure({setIntervalTime, setExperimentName, setConfigure}) {
     const [text, onChangeText] = React.useState('');
     const [number, onChangeNumber] = React.useState('');
     return (
-        <ImageBackground source={require('/Users/seanhakmon/Projects/insect-tracker/insect-app/assets/leafBackground.jpeg')} style={styles.container}>
+        <ImageBackground source={require('../assets/leafBackground.jpeg')} style={styles.container}>
             <Text style={styles.title}> Experiment Configuration </Text>
         <TextInput
             style={styles.input}
